@@ -1,0 +1,577 @@
+:root {
+  --bg: #0f0f14;
+  --surface: #1a1a22;
+  --surface-2: #252532;
+  --text: #e8e6e3;
+  --text-muted: #9a9690;
+  --accent: #c9a227;
+  --accent-hover: #e0b83d;
+  --success: #4a9b6e;
+  --danger: #c75c5c;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --font-sans: 'Outfit', system-ui, sans-serif;
+  --font-kana: 'Noto Sans JP', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.app {
+  min-height: 100vh;
+  padding: 0 0 2rem;
+}
+
+/* Header */
+.header {
+  padding: 1.5rem 1.25rem 1rem;
+  text-align: center;
+  background: linear-gradient(180deg, var(--surface) 0%, transparent 100%);
+}
+
+.header h1 {
+  margin: 0;
+  font-family: var(--font-kana);
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+}
+
+.tagline {
+  margin: 0.25rem 0 1rem;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+}
+
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.tab {
+  padding: 0.6rem 1.25rem;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.tab:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.tab.active {
+  color: var(--bg);
+  background: var(--accent);
+}
+
+.tab:active {
+  transform: scale(0.98);
+}
+
+/* Main grid */
+.main {
+  padding: 0 1rem;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.grid-section {
+  display: none;
+}
+
+.grid-section.active {
+  display: block;
+}
+
+.grid-section h2 {
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* Quiz wrap (muncul ketika semua huruf selesai) */
+.quiz-wrap {
+  margin-bottom: 1.25rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, var(--surface-2) 0%, var(--surface) 100%);
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  text-align: center;
+}
+
+.quiz-wrap.hidden {
+  display: none;
+}
+
+.quiz-desc {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.btn-quiz {
+  width: 100%;
+  max-width: 280px;
+}
+
+.kana-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.5rem;
+}
+
+.kana-card {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: 2px solid var(--surface-2);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.15s, background 0.2s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  text-decoration: none;
+  color: inherit;
+}
+
+.kana-card:hover {
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+
+.kana-card:active {
+  transform: scale(0.97);
+}
+
+.kana-card .char {
+  font-family: var(--font-kana);
+  font-size: clamp(1.75rem, 5vw, 2.25rem);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.kana-card .romaji {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+
+.kana-card .count {
+  font-size: 0.65rem;
+  margin-top: 0.2rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+
+.kana-card.completed .count {
+  background: var(--success);
+  color: #fff;
+}
+
+/* Modal */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s, visibility 0.25s;
+}
+
+.modal.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.modal-content {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  border: 1px solid var(--surface-2);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.practice-char {
+  font-family: var(--font-kana);
+  font-size: 3rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--accent);
+}
+
+.practice-romaji {
+  margin: 0.25rem 0 0.75rem;
+  font-size: 1rem;
+  color: var(--text-muted);
+}
+
+.progress-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--surface-2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  min-width: 3.5rem;
+}
+
+/* Canvas area - touch friendly */
+.canvas-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto 1rem;
+  border-radius: var(--radius);
+  background: #fff;
+  overflow: hidden;
+  touch-action: none;
+}
+
+#draw-canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  height: auto;
+  max-height: 80vmin;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.char-guide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  font-family: var(--font-kana);
+  font-size: 12rem;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.06);
+  line-height: 1;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.btn {
+  flex: 1;
+  padding: 0.85rem 1rem;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn-secondary {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.btn-secondary:hover {
+  background: #333340;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+.btn-close-modal {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.btn-close-modal:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+/* Tutorial overlay (percobaan pertama) */
+.tutorial-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 15, 20, 0.95);
+  border-radius: var(--radius);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s, visibility 0.25s;
+}
+
+.tutorial-overlay.is-visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.tutorial-content {
+  max-width: 300px;
+}
+
+.tutorial-title {
+  margin: 0 0 1rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.tutorial-steps {
+  margin: 0 0 1.25rem;
+  padding-left: 1.25rem;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.tutorial-steps li {
+  margin-bottom: 0.5rem;
+}
+
+.tutorial-steps strong {
+  color: var(--text);
+}
+
+.btn-tutorial-ok {
+  width: 100%;
+}
+
+/* Quiz modal */
+.quiz-modal-content {
+  max-width: 340px;
+}
+
+.quiz-modal-title {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.quiz-progress {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.quiz-char {
+  font-family: var(--font-kana);
+  font-size: 4rem;
+  font-weight: 700;
+  margin: 0 0 1rem;
+  color: var(--accent);
+  line-height: 1.2;
+}
+
+.quiz-prompt {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.quiz-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.quiz-option {
+  padding: 0.9rem 0.75rem;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.quiz-option:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+
+.quiz-option:disabled {
+  cursor: default;
+  opacity: 0.9;
+}
+
+.quiz-option.correct {
+  border-color: var(--success);
+  background: rgba(74, 155, 110, 0.2);
+  color: var(--success);
+}
+
+.quiz-option.wrong {
+  border-color: var(--danger);
+  background: rgba(199, 92, 92, 0.15);
+  color: var(--danger);
+}
+
+.quiz-feedback {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.quiz-feedback.correct {
+  color: var(--success);
+}
+
+.quiz-feedback.wrong {
+  color: var(--danger);
+}
+
+.quiz-feedback.hidden {
+  display: none;
+}
+
+.quiz-result-screen {
+  text-align: center;
+}
+
+.quiz-result-screen.hidden {
+  display: none;
+}
+
+.quiz-result-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  color: var(--accent);
+}
+
+.quiz-score {
+  margin: 0 0 1.25rem;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.quiz-result-screen .btn {
+  min-width: 120px;
+}
+
+.quiz-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+@media (max-width: 380px) {
+  .kana-grid {
+    gap: 0.4rem;
+  }
+  .modal-content {
+    padding: 1rem;
+  }
+  .practice-char {
+    font-size: 2.5rem;
+  }
+}
