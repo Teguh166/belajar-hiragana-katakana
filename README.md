@@ -1,12 +1,12 @@
 # Belajar Hiragana & Katakana
 
-Website untuk belajar menulis Hiragana dan Katakana dengan latihan menulis 20× per huruf dan quiz tebak huruf. Mendukung layar sentuh (touchscreen).
+Website untuk belajar menulis Hiragana dan Katakana dengan latihan menulis 10× per huruf dan quiz tebak huruf. Mendukung layar sentuh (touchscreen).
 
 ## Fitur
 
-- **Latihan menulis**: Setiap huruf (dasar, tenten, maru) punya target 20 kali latihan. Gambar di canvas dengan jari atau mouse.
+- **Latihan menulis**: Setiap huruf (dasar, tenten, maru) punya target 10 kali latihan. Gambar di canvas dengan jari atau mouse.
 - **Progress tersimpan**: Menggunakan localStorage.
-- **Quiz tebak huruf**: Muncul setelah semua huruf di Hiragana/Katakana selesai 20×. Pilih romaji yang benar dari 4 pilihan (10 soal per ronde).
+- **Quiz tebak huruf**: Muncul setelah semua huruf di Hiragana/Katakana selesai 10×. Pilih romaji yang benar dari 4 pilihan (10 soal per ronde).
 
 ## Menjalankan lokal
 

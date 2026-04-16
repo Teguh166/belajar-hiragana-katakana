@@ -1,7 +1,9 @@
 (function () {
   const STORAGE_KEY = 'kana-practice';
   const TUTORIAL_KEY = 'kana-tutorial-seen';
-  const TARGET_COUNT = 20;
+  const TARGET_COUNT = 10;
+  const QUIZ_SIZE = 10;
+  const MIN_ACCURACY_TO_COUNT = 35;
 
   const modal = document.getElementById('practice-modal');
   const tutorialOverlay = document.getElementById('tutorial-overlay');
@@ -13,15 +15,52 @@
   const progressFill = document.getElementById('progress-fill');
   const progressText = document.getElementById('progress-text');
   const charGuide = document.getElementById('char-guide');
+  const accuracyText = document.getElementById('accuracy-text');
+  const accuracyNote = document.getElementById('accuracy-note');
   const btnClear = document.getElementById('btn-clear');
   const btnNext = document.getElementById('btn-next');
   const btnClose = document.getElementById('btn-close-modal');
   const backdrop = modal.querySelector('.modal-backdrop');
+  const progressBar = document.getElementById('progress-bar');
+
+  const quizModal = document.getElementById('quiz-modal');
+  const quizScreen = document.getElementById('quiz-screen');
+  const quizResultScreen = document.getElementById('quiz-result-screen');
+  const quizTitleEl = document.getElementById('quiz-title');
+  const quizProgressEl = document.getElementById('quiz-progress');
+  const quizCharEl = document.getElementById('quiz-char');
+  const quizOptionsEl = document.getElementById('quiz-options');
+  const quizFeedbackEl = document.getElementById('quiz-feedback');
+  const btnQuizNext = document.getElementById('btn-quiz-next');
+  const undoToast = document.getElementById('undo-toast');
+  const undoToastText = document.getElementById('undo-toast-text');
+  const btnUndoReset = document.getElementById('btn-undo-reset');
 
   let currentItem = null;
   let currentType = 'hiragana';
+  let isDrawing = false;
+  let lastX = 0;
+  let lastY = 0;
 
-  // --- Progress (localStorage) ---
+  let quizType = 'hiragana';
+  let quizList = [];
+  let quizQuestions = [];
+  let quizIndex = 0;
+  let quizScore = 0;
+  let quizAnswered = false;
+  let lastResetSnapshot = null;
+  let undoExpireTimer = null;
+  let undoCountdownTimer = null;
+
+  function getTypeData(type) {
+    return KANA_DATA[type];
+  }
+
+  function getAllKana(type) {
+    const data = getTypeData(type);
+    return data.basic.concat(data.modified);
+  }
+
   function getProgress() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -32,8 +71,7 @@
   }
 
   function getCount(type, char) {
-    const key = type + ':' + char;
-    return getProgress()[key] || 0;
+    return getProgress()[type + ':' + char] || 0;
   }
 
   function setCount(type, char, count) {
@@ -48,14 +86,8 @@
     return n;
   }
 
-  // --- Canvas drawing (mouse + touch) ---
-  let isDrawing = false;
-  let lastX = 0;
-  let lastY = 0;
-
   function getPoint(e) {
     const rect = canvas.getBoundingClientRect();
-    // Koordinat dalam ruang CSS canvas (ctx sudah di-scale dpr di setupCanvas)
     if (e.touches && e.touches.length) {
       return {
         x: e.touches[0].clientX - rect.left,
@@ -107,46 +139,18 @@
       canvas.height = h;
       ctx.scale(dpr, dpr);
     }
-    ctx.strokeStyle = '#1a1a22';
+    ctx.strokeStyle = '#2e3e63';
     ctx.lineWidth = 4;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     clearCanvas();
   }
 
-  // Event listeners for drawing - mouse
-  canvas.addEventListener('mousedown', startDraw);
-  canvas.addEventListener('mousemove', draw);
-  canvas.addEventListener('mouseup', endDraw);
-  canvas.addEventListener('mouseleave', endDraw);
-
-  // Event listeners for drawing - touch (touchscreen)
-  canvas.addEventListener('touchstart', startDraw, { passive: false });
-  canvas.addEventListener('touchmove', draw, { passive: false });
-  canvas.addEventListener('touchend', endDraw, { passive: false });
-  canvas.addEventListener('touchcancel', endDraw, { passive: false });
-
-  btnClear.addEventListener('click', function () {
-    clearCanvas();
-  });
-
-  btnNext.addEventListener('click', function () {
-    if (!currentItem) return;
-    const newCount = incrementCount(currentType, currentItem.char);
-    updateProgressUI(newCount);
-    clearCanvas();
-    refreshCard(currentType, currentItem.char);
-    if (newCount >= TARGET_COUNT) {
-      progressText.textContent = 'Selesai!';
-      btnNext.disabled = true;
-    }
-  });
-
   function updateProgressUI(count) {
     const pct = (count / TARGET_COUNT) * 100;
     progressFill.style.width = pct + '%';
     progressText.textContent = count + ' / ' + TARGET_COUNT;
-    document.getElementById('progress-bar').setAttribute('aria-valuenow', count);
+    progressBar.setAttribute('aria-valuenow', count);
   }
 
   function hasSeenTutorial() {
@@ -168,6 +172,50 @@
     markTutorialSeen();
   }
 
+  function setAccuracyUI(score, label, tone, note) {
+    accuracyText.textContent = score === null ? label : score + '% - ' + label;
+    accuracyText.className = 'accuracy-text';
+    if (tone) accuracyText.classList.add(tone);
+    accuracyNote.textContent = note;
+  }
+
+  function calculateAccuracy(char) {
+    const userData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    const templateCanvas = document.createElement('canvas');
+    templateCanvas.width = canvas.width;
+    templateCanvas.height = canvas.height;
+    const tctx = templateCanvas.getContext('2d');
+
+    tctx.clearRect(0, 0, templateCanvas.width, templateCanvas.height);
+    tctx.fillStyle = '#111';
+    tctx.textAlign = 'center';
+    tctx.textBaseline = 'middle';
+    tctx.font = '700 ' + Math.round(templateCanvas.width * 0.62) + 'px "Noto Sans JP", sans-serif';
+    tctx.fillText(char, templateCanvas.width / 2, templateCanvas.height / 2);
+    const templateData = tctx.getImageData(0, 0, templateCanvas.width, templateCanvas.height).data;
+
+    let userCount = 0;
+    let templateCount = 0;
+    let intersection = 0;
+
+    for (let i = 3; i < userData.length; i += 4) {
+      const userPx = userData[i] > 20;
+      const templatePx = templateData[i] > 20;
+      if (userPx) userCount++;
+      if (templatePx) templateCount++;
+      if (userPx && templatePx) intersection++;
+    }
+
+    if (userCount < 40) {
+      return { hasDrawing: false, score: 0, label: 'Belum ada tulisan', tone: 'bad' };
+    }
+
+    const score = Math.round((2 * intersection / (userCount + templateCount)) * 100);
+    if (score >= 65) return { hasDrawing: true, score: score, label: 'Sangat Baik', tone: 'good' };
+    if (score >= MIN_ACCURACY_TO_COUNT) return { hasDrawing: true, score: score, label: 'Cukup', tone: 'warn' };
+    return { hasDrawing: true, score: score, label: 'Perlu Latihan', tone: 'bad' };
+  }
+
   function openPractice(type, item) {
     currentType = type;
     currentItem = item;
@@ -176,6 +224,7 @@
     charGuide.textContent = item.char;
     const count = getCount(type, item.char);
     updateProgressUI(count);
+    setAccuracyUI(null, 'Belum dinilai', '', 'Minimal 35% (Cukup) agar progress bertambah.');
     btnNext.disabled = count >= TARGET_COUNT;
     modal.classList.add('is-open');
     modal.setAttribute('aria-hidden', 'false');
@@ -190,16 +239,19 @@
     modal.setAttribute('aria-hidden', 'true');
   }
 
-  btnClose.addEventListener('click', closeModal);
-  backdrop.addEventListener('click', closeModal);
-
-  btnTutorialOk.addEventListener('click', function () {
-    hideTutorial();
-  });
-
   function refreshCard(type, char) {
-    const grid = type === 'hiragana' ? document.getElementById('hiragana-grid') : document.getElementById('katakana-grid');
-    const card = grid.querySelector('[data-char="' + char + '"]');
+    const ids = [type + '-basic-grid', type + '-modified-grid'];
+    let card = null;
+    ids.some(function (id) {
+      const grid = document.getElementById(id);
+      const found = grid ? grid.querySelector('[data-char="' + char + '"]') : null;
+      if (found) {
+        card = found;
+        return true;
+      }
+      return false;
+    });
+
     if (card) {
       const countEl = card.querySelector('.count');
       const n = getCount(type, char);
@@ -209,32 +261,133 @@
     updateQuizVisibility();
   }
 
-  // --- Quiz (tebak huruf) ---
-  const QUIZ_SIZE = 10;
-  const quizModal = document.getElementById('quiz-modal');
-  const quizScreen = document.getElementById('quiz-screen');
-  const quizResultScreen = document.getElementById('quiz-result-screen');
-  const quizTitleEl = document.getElementById('quiz-title');
-  const quizProgressEl = document.getElementById('quiz-progress');
-  const quizCharEl = document.getElementById('quiz-char');
-  const quizOptionsEl = document.getElementById('quiz-options');
-  const quizFeedbackEl = document.getElementById('quiz-feedback');
-  const btnQuizNext = document.getElementById('btn-quiz-next');
+  function isCharInGroup(type, groupName, char) {
+    return KANA_DATA[type][groupName].some(function (item) {
+      return item.char === char;
+    });
+  }
 
-  let quizList = [];
-  let quizQuestions = [];
-  let quizIndex = 0;
-  let quizScore = 0;
-  let quizAnswered = false;
+  function rerenderType(type) {
+    renderGrid(type, 'basic', KANA_DATA[type].basic);
+    renderGrid(type, 'modified', KANA_DATA[type].modified);
+  }
+
+  function resetGroupProgress(type, groupName, label) {
+    const ok = window.confirm('Reset progress kategori "' + label + '" pada ' + type + '?');
+    if (!ok) return;
+
+    const progress = getProgress();
+    KANA_DATA[type][groupName].forEach(function (item) {
+      progress[type + ':' + item.char] = 0;
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+
+    rerenderType(type);
+    updateQuizVisibility();
+
+    if (currentItem && currentType === type && isCharInGroup(type, groupName, currentItem.char)) {
+      updateProgressUI(0);
+      btnNext.disabled = false;
+      setAccuracyUI(null, 'Belum dinilai', '', 'Progress kategori ini telah di-reset.');
+    }
+  }
+
+  function resetAllProgress() {
+    const ok = window.confirm('Reset SEMUA progress Hiragana & Katakana?');
+    if (!ok) return;
+
+    lastResetSnapshot = getProgress();
+    localStorage.removeItem(STORAGE_KEY);
+    rerenderType('hiragana');
+    rerenderType('katakana');
+    updateQuizVisibility();
+    showUndoToast();
+
+    if (currentItem) {
+      updateProgressUI(0);
+      btnNext.disabled = false;
+      setAccuracyUI(null, 'Belum dinilai', '', 'Semua progress berhasil di-reset.');
+    }
+  }
+
+  function hideUndoToast() {
+    undoToast.classList.add('hidden');
+    if (undoExpireTimer) {
+      clearTimeout(undoExpireTimer);
+      undoExpireTimer = null;
+    }
+    if (undoCountdownTimer) {
+      clearInterval(undoCountdownTimer);
+      undoCountdownTimer = null;
+    }
+  }
+
+  function expireUndo() {
+    lastResetSnapshot = null;
+    hideUndoToast();
+  }
+
+  function showUndoToast() {
+    let remaining = 5;
+    undoToastText.textContent = 'Progress di-reset. Batalkan dalam ' + remaining + ' detik.';
+    undoToast.classList.remove('hidden');
+
+    if (undoExpireTimer) clearTimeout(undoExpireTimer);
+    if (undoCountdownTimer) clearInterval(undoCountdownTimer);
+
+    undoCountdownTimer = setInterval(function () {
+      remaining--;
+      if (remaining > 0) {
+        undoToastText.textContent = 'Progress di-reset. Batalkan dalam ' + remaining + ' detik.';
+      }
+    }, 1000);
+
+    undoExpireTimer = setTimeout(expireUndo, 5000);
+  }
+
+  function undoResetAllProgress() {
+    if (!lastResetSnapshot) {
+      hideUndoToast();
+      return;
+    }
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(lastResetSnapshot));
+    lastResetSnapshot = null;
+    hideUndoToast();
+
+    rerenderType('hiragana');
+    rerenderType('katakana');
+    updateQuizVisibility();
+
+    if (currentItem) {
+      const currentCount = getCount(currentType, currentItem.char);
+      updateProgressUI(currentCount);
+      btnNext.disabled = currentCount >= TARGET_COUNT;
+      setAccuracyUI(null, 'Belum dinilai', '', 'Reset dibatalkan. Progress kembali.');
+    }
+  }
+
+  function shuffleArray(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = a[i];
+      a[i] = a[j];
+      a[j] = tmp;
+    }
+    return a;
+  }
 
   function isSetComplete(type) {
-    const list = type === 'hiragana' ? HIRAGANA : KATAKANA;
-    return list.every(function (item) { return getCount(type, item.char) >= TARGET_COUNT; });
+    return getAllKana(type).every(function (item) {
+      return getCount(type, item.char) >= TARGET_COUNT;
+    });
   }
 
   function updateQuizVisibility() {
     const hWrap = document.getElementById('hiragana-quiz-wrap');
     const kWrap = document.getElementById('katakana-quiz-wrap');
+
     if (hWrap) {
       const show = isSetComplete('hiragana');
       hWrap.classList.toggle('hidden', !show);
@@ -247,26 +400,13 @@
     }
   }
 
-  function shuffleArray(arr) {
-    const a = arr.slice();
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [a[i], a[j]] = [a[j], a[i]];
-    }
-    return a;
-  }
-
-  function pickRandom(list, n) {
-    const shuffled = shuffleArray(list);
-    return shuffled.slice(0, Math.min(n, list.length));
-  }
-
   function startQuiz(type) {
-    quizList = type === 'hiragana' ? HIRAGANA : KATAKANA;
-    const pool = shuffleArray(quizList);
-    quizQuestions = pool.slice(0, Math.min(QUIZ_SIZE, pool.length));
+    quizType = type;
+    quizList = getAllKana(type);
+    quizQuestions = shuffleArray(quizList).slice(0, Math.min(QUIZ_SIZE, quizList.length));
     quizIndex = 0;
     quizScore = 0;
+
     quizTitleEl.textContent = type === 'hiragana' ? 'Tebak huruf — Hiragana' : 'Tebak huruf — Katakana';
     quizModal.classList.add('is-open');
     quizModal.setAttribute('aria-hidden', 'false');
@@ -281,44 +421,55 @@
       showQuizResult();
       return;
     }
+
     quizAnswered = false;
     quizCharEl.textContent = q.char;
     quizProgressEl.textContent = 'Soal ' + (quizIndex + 1) + ' / ' + quizQuestions.length;
-    quizFeedbackEl.classList.add('hidden');
     quizFeedbackEl.className = 'quiz-feedback hidden';
     btnQuizNext.classList.add('hidden');
 
-    const wrongPool = quizList.filter(function (item) { return item.romaji !== q.romaji; });
+    const wrongPool = quizList.filter(function (item) {
+      return item.romaji !== q.romaji;
+    });
     const wrongs = shuffleArray(wrongPool).slice(0, 3);
-    const options = [{ romaji: q.romaji, correct: true }].concat(wrongs.map(function (o) { return { romaji: o.romaji, correct: false }; }));
-    const shuffledOptions = shuffleArray(options);
+    const options = shuffleArray(
+      [{ romaji: q.romaji, correct: true }].concat(
+        wrongs.map(function (item) {
+          return { romaji: item.romaji, correct: false };
+        })
+      )
+    );
 
     quizOptionsEl.innerHTML = '';
-    shuffledOptions.forEach(function (opt) {
+    options.forEach(function (opt) {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'quiz-option';
       btn.textContent = opt.romaji;
-      btn.addEventListener('click', function () { onQuizAnswer(btn, opt.correct, q.romaji); });
+      btn.addEventListener('click', function () {
+        onQuizAnswer(btn, opt.correct, q.romaji);
+      });
       quizOptionsEl.appendChild(btn);
     });
   }
 
-  function onQuizAnswer(clickedBtn, correct, correctRomaji) {
+  function onQuizAnswer(clickedBtn, isCorrect, correctRomaji) {
     if (quizAnswered) return;
     quizAnswered = true;
-    if (correct) quizScore++;
+    if (isCorrect) quizScore++;
 
-    const options = quizOptionsEl.querySelectorAll('.quiz-option');
-    options.forEach(function (btn) {
+    quizOptionsEl.querySelectorAll('.quiz-option').forEach(function (btn) {
       btn.disabled = true;
-      if (btn.textContent === correctRomaji) btn.classList.add('correct');
-      else if (btn === clickedBtn && !correct) btn.classList.add('wrong');
+      if (btn.textContent === correctRomaji) {
+        btn.classList.add('correct');
+      } else if (btn === clickedBtn && !isCorrect) {
+        btn.classList.add('wrong');
+      }
     });
 
     quizFeedbackEl.classList.remove('hidden');
-    quizFeedbackEl.textContent = correct ? 'Benar!' : 'Salah. Jawaban: ' + correctRomaji;
-    quizFeedbackEl.classList.add(correct ? 'correct' : 'wrong');
+    quizFeedbackEl.textContent = isCorrect ? 'Benar!' : 'Salah. Jawaban: ' + correctRomaji;
+    quizFeedbackEl.classList.add(isCorrect ? 'correct' : 'wrong');
     btnQuizNext.classList.remove('hidden');
   }
 
@@ -338,19 +489,10 @@
     quizModal.setAttribute('aria-hidden', 'true');
   }
 
-  document.getElementById('btn-quiz-hiragana').addEventListener('click', function () { startQuiz('hiragana'); });
-  document.getElementById('btn-quiz-katakana').addEventListener('click', function () { startQuiz('katakana'); });
-  btnQuizNext.addEventListener('click', nextQuizQuestion);
-  document.getElementById('btn-quiz-again').addEventListener('click', function () {
-    startQuiz(quizList === HIRAGANA ? 'hiragana' : 'katakana');
-  });
-  document.getElementById('btn-quiz-close').addEventListener('click', closeQuizModal);
-  document.getElementById('btn-quiz-close-x').addEventListener('click', closeQuizModal);
-  quizModal.querySelector('.quiz-backdrop').addEventListener('click', closeQuizModal);
-
-  function renderGrid(type, list) {
-    const grid = document.getElementById(type + '-grid');
+  function renderGrid(type, groupName, list) {
+    const grid = document.getElementById(type + '-' + groupName + '-grid');
     grid.innerHTML = '';
+
     list.forEach(function (item) {
       const count = getCount(type, item.char);
       const card = document.createElement('button');
@@ -368,20 +510,103 @@
     });
   }
 
-  // Tabs
+  canvas.addEventListener('mousedown', startDraw);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', endDraw);
+  canvas.addEventListener('mouseleave', endDraw);
+
+  canvas.addEventListener('touchstart', startDraw, { passive: false });
+  canvas.addEventListener('touchmove', draw, { passive: false });
+  canvas.addEventListener('touchend', endDraw, { passive: false });
+  canvas.addEventListener('touchcancel', endDraw, { passive: false });
+
+  btnClear.addEventListener('click', function () {
+    clearCanvas();
+    setAccuracyUI(null, 'Belum dinilai', '', 'Minimal 35% (Cukup) agar progress bertambah.');
+  });
+
+  btnNext.addEventListener('click', function () {
+    if (!currentItem) return;
+
+    const accuracy = calculateAccuracy(currentItem.char);
+    if (!accuracy.hasDrawing) {
+      setAccuracyUI(0, 'Belum ada tulisan', 'bad', 'Tulis huruf dulu sebelum menekan Selesai.');
+      return;
+    }
+
+    if (accuracy.score < MIN_ACCURACY_TO_COUNT) {
+      setAccuracyUI(
+        accuracy.score,
+        accuracy.label,
+        accuracy.tone,
+        'Belum dihitung. Minimal 35% agar progress bertambah.'
+      );
+      return;
+    }
+
+    const newCount = incrementCount(currentType, currentItem.char);
+    updateProgressUI(newCount);
+    setAccuracyUI(accuracy.score, accuracy.label, accuracy.tone, 'Bagus! Progress bertambah +1.');
+    clearCanvas();
+    refreshCard(currentType, currentItem.char);
+
+    if (newCount >= TARGET_COUNT) {
+      progressText.textContent = 'Selesai!';
+      btnNext.disabled = true;
+    }
+  });
+
+  btnClose.addEventListener('click', closeModal);
+  backdrop.addEventListener('click', closeModal);
+  btnTutorialOk.addEventListener('click', hideTutorial);
+
+  document.getElementById('btn-quiz-hiragana').addEventListener('click', function () {
+    startQuiz('hiragana');
+  });
+  document.getElementById('btn-quiz-katakana').addEventListener('click', function () {
+    startQuiz('katakana');
+  });
+  btnQuizNext.addEventListener('click', nextQuizQuestion);
+  document.getElementById('btn-quiz-again').addEventListener('click', function () {
+    startQuiz(quizType);
+  });
+  document.getElementById('btn-quiz-close').addEventListener('click', closeQuizModal);
+  document.getElementById('btn-quiz-close-x').addEventListener('click', closeQuizModal);
+  quizModal.querySelector('.quiz-backdrop').addEventListener('click', closeQuizModal);
+
+  document.getElementById('btn-reset-hiragana-basic').addEventListener('click', function () {
+    resetGroupProgress('hiragana', 'basic', 'Dasar');
+  });
+  document.getElementById('btn-reset-hiragana-modified').addEventListener('click', function () {
+    resetGroupProgress('hiragana', 'modified', 'Perubahan');
+  });
+  document.getElementById('btn-reset-katakana-basic').addEventListener('click', function () {
+    resetGroupProgress('katakana', 'basic', 'Dasar');
+  });
+  document.getElementById('btn-reset-katakana-modified').addEventListener('click', function () {
+    resetGroupProgress('katakana', 'modified', 'Perubahan');
+  });
+  document.getElementById('btn-reset-all-progress').addEventListener('click', resetAllProgress);
+  btnUndoReset.addEventListener('click', undoResetAllProgress);
+
   document.querySelectorAll('.tab').forEach(function (tab) {
     tab.addEventListener('click', function () {
-      const t = tab.getAttribute('data-tab');
-      document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
+      const target = tab.getAttribute('data-tab');
+      document.querySelectorAll('.tab').forEach(function (item) {
+        item.classList.remove('active');
+      });
       tab.classList.add('active');
-      document.querySelectorAll('.grid-section').forEach(function (s) { s.classList.remove('active'); });
-      document.getElementById(t + '-section').classList.add('active');
+      document.querySelectorAll('.grid-section').forEach(function (section) {
+        section.classList.remove('active');
+      });
+      document.getElementById(target + '-section').classList.add('active');
     });
   });
 
-  // Init
-  renderGrid('hiragana', HIRAGANA);
-  renderGrid('katakana', KATAKANA);
+  renderGrid('hiragana', 'basic', KANA_DATA.hiragana.basic);
+  renderGrid('hiragana', 'modified', KANA_DATA.hiragana.modified);
+  renderGrid('katakana', 'basic', KANA_DATA.katakana.basic);
+  renderGrid('katakana', 'modified', KANA_DATA.katakana.modified);
   updateQuizVisibility();
 
   window.addEventListener('resize', function () {
