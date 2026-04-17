@@ -407,6 +407,15 @@ body {
   touch-action: none;
 }
 
+#stroke-guide-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
 .char-guide {
   position: absolute;
   inset: 0;
@@ -419,11 +428,99 @@ body {
   font-weight: 700;
   color: rgba(0, 0, 0, 0.06);
   line-height: 1;
+  z-index: 1;
 }
 
 .modal-actions {
   display: flex;
   gap: 0.75rem;
+}
+
+.writing-steps-box {
+  margin: 0 0 1rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-sm);
+  background: #fff8f2;
+  border: 1px solid #ffd9bf;
+}
+
+.writing-steps-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #cc6b2e;
+}
+
+.writing-steps-list {
+  margin: 0;
+  padding-left: 1.05rem;
+  font-size: 0.78rem;
+  color: var(--text);
+  line-height: 1.45;
+}
+
+.writing-steps-list li {
+  margin-bottom: 0.2rem;
+}
+
+.writing-steps-actions {
+  margin-top: 0.55rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.stroke-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.stroke-control-label,
+.stroke-loop-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.stroke-loop-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  cursor: pointer;
+}
+
+.stroke-speed-select {
+  border: 1px solid #ffd0b0;
+  background: #fff6ef;
+  color: #925228;
+  border-radius: 8px;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.25rem 0.45rem;
+}
+
+.btn-stroke-play {
+  border: 1px solid #ffc99f;
+  background: #ffefe4;
+  color: #c7642f;
+  border-radius: 999px;
+  font-family: var(--font-sans);
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  touch-action: manipulation;
+}
+
+.btn-stroke-play:hover {
+  background: #ffe5d5;
+  border-color: #ffbb89;
 }
 
 .accuracy-box {
@@ -713,5 +810,93 @@ body {
   }
   .practice-char {
     font-size: 2.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .main {
+    max-width: 100%;
+    padding: 0 0.75rem;
+  }
+  .kana-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .modal-content {
+    max-width: 94vw;
+    max-height: 92vh;
+    overflow-y: auto;
+  }
+  .subgroup-head {
+    flex-wrap: wrap;
+  }
+  .btn-reset-group {
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 540px) {
+  .header {
+    padding: 1rem 0.75rem 0.8rem;
+  }
+  .header h1 {
+    font-size: 1.7rem;
+  }
+  .tagline {
+    font-size: 0.88rem;
+  }
+  .tabs {
+    gap: 0.35rem;
+  }
+  .tab {
+    flex: 1;
+    padding: 0.55rem 0.6rem;
+    font-size: 0.86rem;
+  }
+  .kana-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.45rem;
+  }
+  .kana-card .char {
+    font-size: clamp(1.6rem, 8vw, 2rem);
+  }
+  .modal {
+    padding: 0.45rem;
+    align-items: flex-end;
+  }
+  .modal-content {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    width: 100%;
+    max-width: 100%;
+    max-height: 94vh;
+    padding: 0.9rem;
+  }
+  .canvas-wrap {
+    max-width: min(92vw, 360px);
+  }
+  .modal-actions {
+    gap: 0.5rem;
+  }
+  .writing-steps-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .stroke-controls {
+    justify-content: space-between;
+  }
+  .btn-stroke-play {
+    width: 100%;
+  }
+  .btn {
+    font-size: 0.95rem;
+    padding: 0.78rem 0.8rem;
+  }
+  .undo-toast {
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    transform: none;
+    border-radius: 14px;
+    justify-content: space-between;
   }
 }

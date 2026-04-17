@@ -76,12 +76,32 @@
         </div>
         <div class="canvas-wrap">
           <canvas id="draw-canvas" width="320" height="320"></canvas>
+          <canvas id="stroke-guide-canvas" width="320" height="320" aria-hidden="true"></canvas>
           <div id="char-guide" class="char-guide" aria-hidden="true"></div>
+        </div>
+        <div class="writing-steps-box">
+          <p class="writing-steps-title">Petunjuk menulis (step-by-step)</p>
+          <ol id="writing-steps-list" class="writing-steps-list"></ol>
+          <div class="writing-steps-actions">
+            <div class="stroke-controls">
+              <label class="stroke-control-label" for="stroke-speed-select">Kecepatan</label>
+              <select id="stroke-speed-select" class="stroke-speed-select">
+                <option value="slow">Pelan</option>
+                <option value="normal" selected>Normal</option>
+                <option value="fast">Cepat</option>
+              </select>
+              <label class="stroke-loop-label">
+                <input id="stroke-loop-toggle" type="checkbox">
+                Auto-loop
+              </label>
+            </div>
+            <button type="button" id="btn-play-stroke-animation" class="btn-stroke-play">Lihat Animasi Stroke</button>
+          </div>
         </div>
         <div class="accuracy-box">
           <p class="accuracy-title">Tingkat kebenaran tulisan</p>
           <p id="accuracy-text" class="accuracy-text">Belum dinilai</p>
-          <p id="accuracy-note" class="accuracy-note">Minimal 35% (Cukup) agar progress bertambah.</p>
+          <p id="accuracy-note" class="accuracy-note">Minimal 25% (Cukup) agar progress bertambah.</p>
         </div>
         <div class="modal-actions">
           <button type="button" id="btn-clear" class="btn btn-secondary">Hapus</button>
@@ -98,7 +118,7 @@
               <li>Gunakan <strong>Hapus</strong> untuk membersihkan canvas dan menulis ulang.</li>
               <li>Setelah selesai menulis sekali, tekan <strong>Selesai (+1)</strong> untuk menghitung satu latihan.</li>
               <li>Target setiap huruf: <strong>10 kali</strong> latihan. Progress disimpan otomatis.</li>
-              <li>Progress dihitung jika nilai tulisan minimal <strong>35% (Cukup)</strong>.</li>
+              <li>Progress dihitung jika nilai tulisan minimal <strong>25% (Cukup)</strong>.</li>
             </ol>
             <button type="button" id="btn-tutorial-ok" class="btn btn-primary btn-tutorial-ok">Mengerti, mulai</button>
           </div>
