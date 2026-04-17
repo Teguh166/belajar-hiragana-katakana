@@ -19,6 +19,10 @@
         <button type="button" class="tab" data-tab="katakana">Katakana</button>
       </div>
       <div class="header-actions">
+        <button type="button" id="btn-toggle-sound" class="btn-toggle-sound">
+          <span id="toggle-sound-icon" class="sound-toggle-icon" aria-hidden="true">🔊</span>
+          <span id="toggle-sound-label">Suara: ON</span>
+        </button>
         <button type="button" id="btn-reset-all-progress" class="btn-reset-all">Reset Semua Progress</button>
       </div>
     </header>
@@ -76,26 +80,25 @@
         </div>
         <div class="canvas-wrap">
           <canvas id="draw-canvas" width="320" height="320"></canvas>
-          <canvas id="stroke-guide-canvas" width="320" height="320" aria-hidden="true"></canvas>
           <div id="char-guide" class="char-guide" aria-hidden="true"></div>
         </div>
         <div class="writing-steps-box">
           <p class="writing-steps-title">Petunjuk menulis (step-by-step)</p>
           <ol id="writing-steps-list" class="writing-steps-list"></ol>
           <div class="writing-steps-actions">
-            <div class="stroke-controls">
-              <label class="stroke-control-label" for="stroke-speed-select">Kecepatan</label>
-              <select id="stroke-speed-select" class="stroke-speed-select">
-                <option value="slow">Pelan</option>
-                <option value="normal" selected>Normal</option>
-                <option value="fast">Cepat</option>
-              </select>
-              <label class="stroke-loop-label">
-                <input id="stroke-loop-toggle" type="checkbox">
-                Auto-loop
-              </label>
+            <div class="audio-controls">
+              <label class="audio-control-label" for="voice-volume">Vol Huruf</label>
+              <input id="voice-volume" class="audio-range" type="range" min="0" max="100" step="5" value="100">
+              <label class="audio-control-label" for="sfx-volume">Vol Efek</label>
+              <input id="sfx-volume" class="audio-range" type="range" min="0" max="100" step="5" value="80">
             </div>
-            <button type="button" id="btn-play-stroke-animation" class="btn-stroke-play">Lihat Animasi Stroke</button>
+            <button type="button" id="btn-play-char-sound" class="btn-char-sound" data-state="idle">
+              <span class="char-sound-icon" aria-hidden="true">🔊</span>
+              <span class="char-sound-label">Putar Suara Huruf</span>
+              <span class="char-sound-waves" aria-hidden="true">
+                <span></span><span></span><span></span>
+              </span>
+            </button>
           </div>
         </div>
         <div class="accuracy-box">
