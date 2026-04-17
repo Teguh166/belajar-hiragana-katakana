@@ -23,7 +23,6 @@
   const toggleSoundIcon = document.getElementById('toggle-sound-icon');
   const toggleSoundLabel = document.getElementById('toggle-sound-label');
   const voiceVolumeInput = document.getElementById('voice-volume');
-  const sfxVolumeInput = document.getElementById('sfx-volume');
   const accuracyText = document.getElementById('accuracy-text');
   const accuracyNote = document.getElementById('accuracy-note');
   const btnClear = document.getElementById('btn-clear');
@@ -65,7 +64,6 @@
   let audioCtx = null;
   let soundEnabled = true;
   let voiceVolume = 1;
-  let sfxVolume = 0.8;
   let activeSpeechToken = 0;
 
   function getTypeData(type) {
@@ -205,7 +203,7 @@
     const gain = context.createGain();
     osc.type = type || 'sine';
     osc.frequency.value = freq;
-    const finalGain = Math.max(0.0001, gainValue * sfxVolume);
+    const finalGain = Math.max(0.0001, gainValue);
     gain.gain.value = finalGain;
     osc.connect(gain);
     gain.connect(context.destination);
@@ -272,8 +270,7 @@
   function saveSoundSettings() {
     localStorage.setItem(SOUND_SETTINGS_KEY, JSON.stringify({
       enabled: soundEnabled,
-      voiceVolume: voiceVolume,
-      sfxVolume: sfxVolume
+      voiceVolume: voiceVolume
     }));
   }
 
@@ -282,11 +279,9 @@
     toggleSoundLabel.textContent = soundEnabled ? 'Suara: ON' : 'Suara: OFF';
     btnToggleSound.classList.toggle('off', !soundEnabled);
     voiceVolumeInput.disabled = !soundEnabled;
-    sfxVolumeInput.disabled = !soundEnabled;
     btnPlayCharSound.disabled = !soundEnabled || !('speechSynthesis' in window);
     if (!soundEnabled) setCharSoundButtonState('idle');
     voiceVolumeInput.value = String(Math.round(voiceVolume * 100));
-    sfxVolumeInput.value = String(Math.round(sfxVolume * 100));
   }
 
   function setCharSoundButtonState(state) {
@@ -304,7 +299,6 @@
     }
     soundEnabled = settings.enabled !== false;
     voiceVolume = Math.min(1, Math.max(0, Number(settings.voiceVolume || 1)));
-    sfxVolume = Math.min(1, Math.max(0, Number(settings.sfxVolume || 0.8)));
     updateSoundUI();
   }
 
@@ -684,11 +678,6 @@
 
   voiceVolumeInput.addEventListener('input', function () {
     voiceVolume = Math.min(1, Math.max(0, Number(voiceVolumeInput.value) / 100));
-    saveSoundSettings();
-  });
-
-  sfxVolumeInput.addEventListener('input', function () {
-    sfxVolume = Math.min(1, Math.max(0, Number(sfxVolumeInput.value) / 100));
     saveSoundSettings();
   });
 

@@ -472,6 +472,10 @@ body {
   border: 1px solid #ffd9bf;
 }
 
+.btn-char-sound-top {
+  margin: 0 0 0.5rem;
+}
+
 .writing-steps-title {
   margin: 0 0 0.35rem;
   font-size: 0.82rem;
@@ -494,7 +498,7 @@ body {
 .writing-steps-actions {
   margin-top: 0.55rem;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   gap: 0.6rem;
   flex-wrap: wrap;

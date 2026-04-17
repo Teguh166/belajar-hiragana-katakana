@@ -8,7 +8,7 @@ Website untuk belajar menulis Hiragana dan Katakana dengan latihan menulis 10× 
 - **Progress tersimpan**: Menggunakan localStorage.
 - **Suara huruf**: Di modal latihan ada tombol putar suara pengucapan huruf (speech synthesis).
 - **Efek suara latihan**: Ada efek suara saat progress +1 dan saat huruf selesai 10/10.
-- **Kontrol suara**: Tombol global ON/OFF di header + volume terpisah untuk suara huruf dan efek suara.
+- **Kontrol suara**: Tombol global ON/OFF di header + pengaturan volume untuk suara huruf.
 - **Feedback visual suara**: Tombol suara huruf punya ikon speaker dan animasi indikator saat suara sedang diputar.
 - **Indikator mute otomatis**: Saat suara OFF, ikon berubah ke mode mute (🔇) agar status mudah dikenali.
 - **Quiz tebak huruf**: Muncul setelah semua huruf di Hiragana/Katakana selesai 10×. Pilih romaji yang benar dari 4 pilihan (10 soal per ronde).
